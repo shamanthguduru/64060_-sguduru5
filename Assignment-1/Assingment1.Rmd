@@ -1,0 +1,85 @@
+---
+title: "Assingment1"
+author: "SHAMANTH"
+date: "2024-02-05"
+output: html_document
+---
+## Summary Of Dataset Imported
+
+This particular DataSet has been taken from Kaggel Dataset Website.Where the care has been taken to ensure that the data has a mix of quantitative and qualitative(categorical) variables.
+
+The variables in the dataset are defined as follows:
+
+WI = weekly wage income in rupees
+
+Age = age in years
+
+Dsex = 1 for male workers and 0 for female workers
+
+DE2 = a dummy variable taking a value of 1 for workers with up to a primary education
+
+DE3 = a dummy variable taking a value of 1 for workers with up to a secondary education
+
+DE4 = a dummy variable taking a value of 1 for workers with higher education
+
+DPT = a dummy variable taking a value of 1 for workers with permanent jobs and a value of 0 for temporary workers
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+IndianLabor90 <- read_excel("IndianLabor90.xlsx")
+View(IndianLabor90)
+
+
+```
+
+```{r}
+
+cat("Summary Statistics for Daily Wages and Age of Workers:\n")
+print(summary(IndianLabor90$WI))
+print(summary(IndianLabor90$AGE))
+
+```
+```{r}
+cat("Summary Statistics for Categorical Variable SEX and Higher Education:\n")
+print(table(IndianLabor90$DSEX))
+print(table(IndianLabor90$DE4))
+```
+```{r}
+#transforming the a variable WI to increasing 10 numerical vale
+IndianLabor90$WI <- IndianLabor90$WI + 10
+IndianLabor90
+```
+
+```{r}
+hist(IndianLabor90$AGE,main = "Histogram of Workers Age",xlab = "AGE")
+```
+```{r}
+plot(IndianLabor90$AGE,IndianLabor90$DE2, main = "Scatter Plot - AGE Vs Primary Education", xlab = "AGE", ylab = "Primary Education")
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
