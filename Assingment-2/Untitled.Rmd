@@ -1,0 +1,191 @@
+---
+title: "Assingment2"
+output: html_document
+date: "2024-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(class)
+library(caret)
+library(readr)
+UniversalBank <- read_csv("UniversalBank.csv")
+df <- read.csv("UniversalBank.csv")
+df <- df[, !(names(df) %in% c('ID', 'ZIP Code'))]
+UniversalBank$Education <- as.factor(UniversalBank$Education)
+X <- UniversalBank[, !(names(UniversalBank) %in% c('Securities Account'))]
+y <- UniversalBank$`Securities Account`
+
+set.seed(42)
+splitIndex <- createDataPartition(y, p = 0.6, list = FALSE)
+X_train <- X[splitIndex, ]
+X_val <- X[-splitIndex, ]
+y_train <- y[splitIndex]
+y_val <- y[-splitIndex]
+
+scaler <- preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(scaler, X_train)
+X_val_scaled <- predict(scaler, X_val)
+new_customer <- data.frame(
+  Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2,
+  Education_1 = 0, Education_2 = 1, Education_3 = 0,
+  Mortgage = 0, Securities.Account = 0, CD.Account = 0, Online = 1, Credit.Card = 1
+)
+new_customer$Education <- factor(2, levels = c(1, 2, 3))  # Assuming the 'Education_2' level
+
+# Convert categorical predictors into dummy variables for the new customer
+new_customer_dummy <- model.matrix(~., data = new_customer)[, -1]  # Exclude intercept column
+
+# Manually apply centering and scaling
+new_customer_scaled <- (new_customer_dummy - scaler$center) / scaler$scale
+k <- 1
+knn_model <- knn(train = X_train_scaled, test = X_val_scaled, cl = y_train, k = k)
+prediction <- as.numeric(knn_model)
+
+cat("The customer would be classified as:", prediction, "\n")
+```
+```{r}
+print(knn_model)
+```
+
+
+```{r}
+# Plot the cross-validation results
+plot(knn_model)
+```
+
+
+```{r}
+y_train <- factor(y_train, levels = c(0, 1))
+
+# Perform k-fold cross-validation to identify an appropriate value of k
+set.seed(42)
+k_values <- seq(1, 20, by = 2)  # Choose a range of k values
+ctrl <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
+knn_model_cv <- train(x = X_train, y = y_train, method = "knn", trControl = ctrl, tuneGrid = data.frame(k = k_values))
+best_k <- knn_model_cv$bestTune$k
+
+cat("2. The best value of k is:", best_k, "\n")
+
+
+```
+
+```{r}
+# Train the k-NN model with the best k using the entire training data
+final_knn_model <- knn(train = X_train, test = X_val, cl = as.factor(y_train), k = best_k)
+
+# Convert y_val to factor with the same levels as y_train
+y_val_factor <- factor(y_val, levels = levels(as.factor(y_train)))
+
+# Confusion matrix
+conf_matrix <- confusionMatrix(final_knn_model, reference = y_val_factor)
+print("3. Confusion Matrix for Validation Data:")
+print(conf_matrix)
+
+```
+
+
+```{r}
+# Load necessary libraries
+library(caret)
+library(class)
+
+# Load the dataset
+df <- read.csv("UniversalBank.csv")
+
+# Assuming 'Personal Loan' is the column representing loan acceptance (1 for accepted, 0 for not accepted)
+y <- df$Personal.Loan
+X <- df[, -which(names(df) == "Personal.Loan")]
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Create a 60-40 stratified split
+index <- createDataPartition(y, p = 0.6, list = FALSE)
+
+# Create training and validation sets
+train_data <- df[index, ]
+valid_data <- df[-index, ]
+
+# Feature scaling if necessary
+# ...
+
+# Perform hyperparameter tuning for k
+ks <- seq(1, 20, by = 2)  # Try odd values of k
+accuracies <- numeric(length(ks))
+
+for (i in seq_along(ks)) {
+  # Train k-NN model
+  knn_model <- knn(train = train_data[, -which(names(train_data) == "Personal.Loan")], 
+                   test = valid_data[, -which(names(valid_data) == "Personal.Loan")], 
+                   cl = train_data$Personal.Loan, 
+                   k = ks[i])
+  
+  # Evaluate accuracy on validation set
+  accuracies[i] <- sum(knn_model == valid_data$Personal.Loan) / length(valid_data$Personal.Loan)
+}
+
+# Find the best k (highest accuracy)
+best_k <- ks[which.max(accuracies)]
+cat("Best k:", best_k, "\n")
+
+# Now, classify the specific customer with the best k using the entire training set
+new_customer <- data.frame(
+  Age = 40,
+  Experience = 10,
+  Income = 84,
+  Family = 2,
+  CCAvg = 2,
+  Education_1 = 0,
+  Education_2 = 1,
+  Education_3 = 0,
+  Mortgage = 0,
+  Securities.Account = 0,
+  CD.Account = 0,
+  Online = 1,
+  CreditCard = 1
+)
+
+# Train the final k-NN model with the best k using the entire training set
+final_model <- knn(train = X, test = new_customer, cl = y, k = best_k)
+
+# Print the classification for the specific customer
+cat("Predicted Class for the Specific Customer:", final_model, "\n")
+
+```
+```{r}
+# Repartition the data into training (50%), validation (30%), and test (20%) sets
+set.seed(42)
+splitIndexTrain <- createDataPartition(y, p = 0.5, list = FALSE)
+splitIndexValidation <- createDataPartition(y[-splitIndexTrain], p = 0.6, list = FALSE)
+X_train_new <- X[splitIndexTrain, ]
+X_val_new <- X[-c(splitIndexTrain, splitIndexValidation), ]
+X_test_new <- X[-splitIndexTrain, ][-splitIndexValidation, ]
+y_train_new <- y[splitIndexTrain]
+y_val_new <- y[-c(splitIndexTrain, splitIndexValidation)]
+y_test_new <- y[-splitIndexTrain][-splitIndexValidation]
+
+# Perform k-NN classification with the best k on the new partitions
+knn_model_train <- knn(train = X_train_new, test = X_train_new, cl = as.factor(y_train_new), k = best_k)
+knn_model_val <- knn(train = X_train_new, test = X_val_new, cl = as.factor(y_train_new), k = best_k)
+knn_model_test <- knn(train = X_train_new, test = X_test_new, cl = as.factor(y_train_new), k = best_k)
+
+# Confusion matrices
+conf_matrix_train <- confusionMatrix(knn_model_train, reference = as.factor(y_train_new))
+conf_matrix_val <- confusionMatrix(knn_model_val, reference = as.factor(y_val_new))
+conf_matrix_test <- confusionMatrix(knn_model_test, reference = as.factor(y_test_new))
+
+print("Confusion Matrix for Training Data:")
+print(conf_matrix_train)
+
+print("Confusion Matrix for Validation Data:")
+print(conf_matrix_val)
+
+print("Confusion Matrix for Test Data:")
+print(conf_matrix_test)
+
+```
