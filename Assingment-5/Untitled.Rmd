@@ -1,0 +1,83 @@
+---
+title: "Assingment-5"
+output: html_document
+date: "2024-04-06"
+---
+
+```{r}
+#A
+library(cluster)
+library(readr)
+Cereals <- read_csv("Cereals.csv")
+
+cleaned_data <- na.omit(Cereals)
+
+
+numericals_data <- cleaned_data[, sapply(cleaned_data, is.numeric)]
+X <- numericals_data[, -1] 
+X_scaled <- scale(X)
+linkage_methods <- c("single", "complete", "average", "ward")
+par(mfrow = c(1, 4))
+for (method in linkage_methods) {
+  hc <- hclust(dist(X_scaled), method = method)
+  plot(hc, main = paste("Dendrogram (", method, " Linkage)", sep = ""))
+}
+
+```
+
+```{r}
+#B
+clustering_ward <- agnes(X_scaled, method = "ward")
+wss <- c()
+for (k in 2:10) {
+  clustering <- cutree(clustering_ward, k)
+  clusters <- split(X_scaled, clustering)
+  wss[k - 1] <- sum(sapply(clusters, function(cluster) sum(dist(cluster)^2)))
+}
+
+plot(2:10, wss, type = "b", xlab = "Number of Clusters", ylab = "Total Within-Cluster Sum of Squares", main = "Elbow Method for Hierarchical Clustering")
+
+```
+
+```{r}
+#C
+partition_A <- matrix(rnorm(100), ncol = 5) 
+result <- cluster::agnes(partition_A, method = "ward")
+
+clustering_A <- agnes(partition_A, method = "ward")
+cluster_assignments_A <- cutree(clustering_A, k = 3)
+cluster_centroids <- sapply(unique(cluster_assignments_A), function(cluster) colMeans(partition_A[cluster_assignments_A == cluster,]))
+
+partition_B<- matrix(rnorm(100), ncol = 5)  # Generating a random matrix
+
+result <- cluster::agnes(partition_B, method = "ward")
+
+cluster_assignments_B <- apply(partition_B, 1, function(record) {
+  cluster <- which.min(apply(cluster_centroids, 2, function(centroid) sum((record - centroid)^2)))
+  return(cluster)
+})
+
+consistency <- sum(cluster_assignments_B == cutree(clustering_ward, k = 3)) / length(cluster_assignments_B)
+print(paste("Consistency:", consistency))
+
+```
+
+```{r}
+#D
+library(cluster)
+data <- read.csv("Cereals.csv")
+data <- na.omit(data)
+features <- data[, c("calories", "sugars", "protein", "fiber")]
+summary(features)
+features_scaled <- scale(features) 
+clustering <- agnes(features_scaled, method = "ward")
+plot(clustering, which.plots = 2)
+
+cut_clusters <- cutree(clustering, k = 3)  
+data$Cluster <- cut_clusters
+aggregate(features, by = list(Cluster = cut_clusters), FUN = mean)
+
+healthy_cereals <- data[data$Cluster == 3, ]
+print(healthy_cereals)
+
+```
